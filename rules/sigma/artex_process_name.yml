@@ -1,0 +1,25 @@
+title: Process Image Named artex
+id: 4e8f0c21-6a55-4d3b-9c70-15ab2e8d6f04
+status: experimental
+description: >
+  A process image ends with the ARTEX build name (artex or artex.exe).
+  The name alone is a medium-confidence install clue. Do not alert on artex-hunt.
+references:
+  - https://github.com/Hinln/ARTEX/blob/f3e3f54b6c93916388a0a3dc6a439893a9abe37a/cmd/artex/main.go
+author: 최규선
+date: 2026-10-10
+logsource:
+  category: process_creation
+  product: linux
+detection:
+  selection:
+    Image|endswith:
+      - "/artex"
+      - "/artex.exe"
+  condition: selection
+falsepositives:
+  - An unrelated program shipped under the same file name
+  - An authorized lab
+level: medium
+tags:
+  - detection.experimental

@@ -1,0 +1,26 @@
+title: Inbound HTTP User-Agent Matches ARTEX Recon Module
+id: 6b1d0e4a-7c3a-4f2e-9a11-2d8e5c0b7f31
+status: experimental
+description: >
+  The HTTP User-Agent is exactly one of the three strings hardcoded in the public
+  ARTEX enrich and api-recon scripts. This identifies that module. It does not
+  confirm compromise, and it does not cover every ARTEX request path.
+references:
+  - https://github.com/Hinln/ARTEX/blob/f3e3f54b6c93916388a0a3dc6a439893a9abe37a/enrich/enrich.go
+  - https://github.com/Hinln/ARTEX/blob/f3e3f54b6c93916388a0a3dc6a439893a9abe37a/skills/api-recon/scripts/harvest_static.py
+  - https://github.com/Hinln/ARTEX/blob/f3e3f54b6c93916388a0a3dc6a439893a9abe37a/skills/api-recon/scripts/spider_mpa.py
+  - https://blog.plura.io/ko/respond/financial-sector-hacking-ioc-artex-1st-report/
+author: 최규선
+date: 2026-10-10
+logsource:
+  category: webserver
+detection:
+  selection:
+    cs-user-agent|re: '(?i)^(?:artex-enrich/1\.0|Mozilla/5\.0 \(spa-api-recon(?: spider)?\))$'
+  condition: selection
+falsepositives:
+  - Authorized testing that runs the same public scripts
+level: medium
+tags:
+  - attack.reconnaissance
+  - detection.experimental

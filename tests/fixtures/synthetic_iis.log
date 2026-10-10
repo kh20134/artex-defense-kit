@@ -1,0 +1,7 @@
+#Software: Microsoft Internet Information Services 10.0
+#Version: 1.0
+#Date: 2026-10-10 00:00:00
+#Fields: date time s-ip cs-method cs-uri-stem cs-uri-query s-port cs-username c-ip cs(User-Agent) cs(Referer) sc-status sc-substatus sc-win32-status time-taken
+2026-10-10 04:02:00 10.0.0.5 GET / - 443 - 198.51.100.12 artex-enrich/1.0 - 200 0 0 3
+2026-10-10 04:03:00 10.0.0.5 GET /menu - 443 - 198.51.100.13 Mozilla/5.0+(spa-api-recon+spider) - 200 0 0 4
+2026-10-10 04:00:00 10.0.0.5 GET / - 443 - 198.51.100.10 Mozilla/5.0+(Windows+NT+10.0) - 200 0 0 2
