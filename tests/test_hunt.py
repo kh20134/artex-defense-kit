@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 from artex_hunt.cli import main
@@ -211,3 +213,75 @@ def test_cli_writes_reports_and_exit_code(tmp_path: Path) -> None:
     assert clean == 0
     missing = main(["host", "--directory", str(tmp_path / "missing")])
     assert missing == 1
+
+
+def _run_cli(*args: str, cwd: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, "-m", "artex_hunt", *args],
+        cwd=cwd,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+
+def test_json_and_html_follow_the_subcommand(tmp_path: Path) -> None:
+    """README puts --json and --html after scan/host. The top-level parser does not accept them."""
+    repo = Path(__file__).resolve().parents[1]
+    scan_json = tmp_path / "scan.json"
+    scan_html = tmp_path / "scan.html"
+    host_json = tmp_path / "host.json"
+    host_html = tmp_path / "host.html"
+
+    scan = _run_cli(
+        "scan",
+        str(ACCESS),
+        "--json",
+        str(scan_json),
+        "--html",
+        str(scan_html),
+        cwd=repo,
+    )
+    assert scan.returncode == 0, scan.stderr
+    assert scan.stdout.startswith("ARTEX 헌트 결과")
+    scan_payload = json.loads(scan_json.read_text(encoding="utf-8"))
+    assert scan_payload["mode"] == "scan"
+    assert scan_payload["schema_version"] == 1
+    assert "로그 스캔" in scan_html.read_text(encoding="utf-8")
+
+    host = _run_cli(
+        "host",
+        "--directory",
+        str(FIXTURES / "synthetic_host" / "install"),
+        "--processes",
+        str(FIXTURES / "synthetic_processes.txt"),
+        "--containers",
+        str(FIXTURES / "synthetic_containers.json"),
+        "--json",
+        str(host_json),
+        "--html",
+        str(host_html),
+        cwd=repo,
+    )
+    assert host.returncode == 0, host.stderr
+    assert host.stdout.startswith("ARTEX 헌트 결과")
+    host_payload = json.loads(host_json.read_text(encoding="utf-8"))
+    assert host_payload["mode"] == "host"
+    assert host_payload["findings"]
+    assert "호스트 점검" in host_html.read_text(encoding="utf-8")
+
+    for command in ("scan", "host"):
+        misplaced_json = tmp_path / f"misplaced-{command}.json"
+        misplaced_html = tmp_path / f"misplaced-{command}.html"
+        misplaced = _run_cli(
+            "--json",
+            str(misplaced_json),
+            "--html",
+            str(misplaced_html),
+            command,
+            cwd=repo,
+        )
+        assert misplaced.returncode != 0
+        assert "invalid choice" in misplaced.stderr
+        assert not misplaced_json.exists()
+        assert not misplaced_html.exists()
