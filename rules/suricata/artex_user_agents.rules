@@ -1,0 +1,13 @@
+# Example Suricata signatures for verified ARTEX User-Agents.
+# Tune SID, classtype, and HOME_NET before use. These rules detect a tool
+# string. They do not confirm compromise. Start in alert mode, not drop.
+# startswith/endswith need a Suricata build that supports those keywords.
+
+alert http any any -> $HOME_NET any (msg:"ARTEX candidate UA artex-enrich/1.0"; flow:to_server,established; http.user_agent; content:"artex-enrich/1.0"; nocase; startswith; endswith; classtype:misc-activity; sid:9100101; rev:1; metadata:created_at 2026_10_10, confidence high, purpose detect_only;)
+
+alert http any any -> $HOME_NET any (msg:"ARTEX candidate UA spa-api-recon"; flow:to_server,established; http.user_agent; content:"Mozilla/5.0 (spa-api-recon)"; nocase; startswith; endswith; classtype:misc-activity; sid:9100102; rev:1; metadata:created_at 2026_10_10, confidence high, purpose detect_only;)
+
+alert http any any -> $HOME_NET any (msg:"ARTEX candidate UA spa-api-recon spider"; flow:to_server,established; http.user_agent; content:"Mozilla/5.0 (spa-api-recon spider)"; nocase; startswith; endswith; classtype:misc-activity; sid:9100103; rev:1; metadata:created_at 2026_10_10, confidence high, purpose detect_only;)
+
+# Outbound update client. GitHub itself is not an attacker destination.
+alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"ARTEX self-update User-Agent"; flow:to_server,established; http.user_agent; content:"artex-selfupdate"; nocase; startswith; endswith; classtype:misc-activity; sid:9100104; rev:1; metadata:created_at 2026_10_10, confidence medium, direction outbound;)

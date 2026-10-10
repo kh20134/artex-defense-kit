@@ -1,0 +1,3 @@
+services:
+  artex:
+    image: autumn27/artex:0.3.14

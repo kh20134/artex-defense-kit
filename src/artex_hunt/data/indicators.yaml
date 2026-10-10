@@ -1,0 +1,475 @@
+# ARTEX 방어 헌트용 지표.
+# 값은 2026-10-10에 Hinln/ARTEX 공개 소스를 직접 읽고 확인했다.
+# Autumn-27/ARTEX 는 같은 날 공개 HTTPS 에서 404 였다.
+# PLURA 가 기준으로 밝힌 v0.3.14 changelog 커밋에서도 같은 문자열을 재확인했다.
+# 공격 IP, 배포 ZIP 해시는 공개 산출물을 다시 받아 검증하지 못했으므로 넣지 않는다.
+
+meta:
+  repo: https://github.com/Hinln/ARTEX
+  commit: f3e3f54b6c93916388a0a3dc6a439893a9abe37a
+  commit_note: "2026-10-08 Hinln/ARTEX main. 업데이트 저장소 상수만 Hinln/ARTEX 로 바뀌어 있다."
+  v0314_commit: 86162d7edac41afcdd82d8de9ecab512b7e014d6
+  v0314_note: "changelog '定版 0.3.14' 커밋. PLURA 1보가 밝힌 분석 기준 버전과 대응한다."
+  verified_on: "2026-10-10"
+  license_of_studied_project: AGPL-3.0
+  incident_note: >
+    세 User-Agent 는 공개 소스의 후보 지표이다.
+    PLURA 는 금융권 공격 로그와 대조해 검증한 값이 아니라고 명시했다.
+    문자열 일치는 도구 식별 후보이며 침해 성공이 아니다.
+
+coverage_gaps:
+  - "LLM 이 작성한 클라이언트가 User-Agent 를 아예 넣지 않을 수 있다. PLURA 승인 랩(2026-10-09, ARTEX v0.3.14)에서 그런 GET 8건은 spa-api-recon 정확 일치가 0/8 이었다."
+  - "skills/api-recon/scripts/runtime_harvest.js 는 puppeteer-core 로 시스템 Chromium 을 띄운다(파일 머리말 14행, require 40행, chromium 경로 46행). 고정 User-Agent 세 문자열과 다른 브라우저 요청이 된다."
+  - "후보 User-Agent 가 없다는 이유만으로 ARTEX 활동이나 침해 가능성을 배제하지 않는다."
+  - "공개된 공격 IP 목록과 v0.3.14 배포 ZIP 의 SHA-256 은 이 파일에 없다. 전자는 공개 검증 목록이 없고, 후자는 2026-10-10 에 릴리스 자산을 다시 받아 해시하지 못했다."
+
+indicators:
+  - id: ua-artex-enrich
+    status: active
+    type: http_user_agent
+    value: "artex-enrich/1.0"
+    match: exact
+    direction: inbound
+    confidence: high
+    hunt_log: true
+    hunt_host: false
+    purpose: "자산 HTTP 보강(enrich)이 대상 URL 에 GET 을 보낼 때 붙이는 User-Agent. 본문은 1MiB 에서 자르고 상태 코드·제목을 기록한다."
+    false_positives: "같은 빌드로 인가된 점검을 한 경우에도 맞는다. 일치만으로 침해 성공이나 특정 사건 연관을 확정하지 않는다."
+    sources:
+      - kind: source
+        repo: https://github.com/Hinln/ARTEX
+        commit: f3e3f54b6c93916388a0a3dc6a439893a9abe37a
+        file: enrich/enrich.go
+        line: 233
+        note: "req.Header.Set User-Agent. v0.3.14 커밋 86162d7 에서도 233행이 같다."
+      - kind: report
+        title: "PLURA 1보"
+        url: https://blog.plura.io/ko/respond/financial-sector-hacking-ioc-artex-1st-report/
+        date: "2026-10-03"
+
+  - id: ua-spa-api-recon
+    status: active
+    type: http_user_agent
+    value: "Mozilla/5.0 (spa-api-recon)"
+    match: exact
+    direction: inbound
+    confidence: high
+    hunt_log: true
+    hunt_host: false
+    purpose: "SPA 정적 번들 수집 스크립트의 User-Agent. 진입 HTML 을 받은 뒤 JS 를 병렬로 받는다."
+    false_positives: "인가된 점검·연구 트래픽과 구분해야 한다. 이 문자열은 ARTEX 의 모든 HTTP 요청을 대표하지 않는다."
+    sources:
+      - kind: source
+        repo: https://github.com/Hinln/ARTEX
+        commit: f3e3f54b6c93916388a0a3dc6a439893a9abe37a
+        file: skills/api-recon/scripts/harvest_static.py
+        line: 23
+        note: "v0.3.14 커밋 86162d7 에서도 23행. 병렬 수신은 같은 파일 145·163·174행, 청크 확장 상한은 151행(rounds < 6)."
+      - kind: report
+        title: "PLURA 1보"
+        url: https://blog.plura.io/ko/respond/financial-sector-hacking-ioc-artex-1st-report/
+        date: "2026-10-03"
+
+  - id: ua-spa-api-recon-spider
+    status: active
+    type: http_user_agent
+    value: "Mozilla/5.0 (spa-api-recon spider)"
+    match: exact
+    direction: inbound
+    confidence: high
+    hunt_log: true
+    hunt_host: false
+    purpose: "비-SPA 페이지를 같은 출처에서 순회하는 스크립트의 User-Agent. 기본값은 최대 200페이지, 깊이 4, 요청 사이 0.1초이다."
+    false_positives: "인가된 크롤과 구분해야 한다. 0.1초·200·4 는 스크립트 기본값이지 이번 사건에서 측정된 속도가 아니다."
+    sources:
+      - kind: source
+        repo: https://github.com/Hinln/ARTEX
+        commit: f3e3f54b6c93916388a0a3dc6a439893a9abe37a
+        file: skills/api-recon/scripts/spider_mpa.py
+        line: 22
+        note: "기본 인자는 70–71행. v0.3.14 커밋 86162d7 에서도 같다. JS·이미지 등 정적 확장자는 순회에서 건너뛴다(23행)."
+      - kind: report
+        title: "PLURA 1보"
+        url: https://blog.plura.io/ko/respond/financial-sector-hacking-ioc-artex-1st-report/
+        date: "2026-10-03"
+
+  - id: ua-artex-selfupdate
+    status: active
+    type: http_user_agent
+    value: "artex-selfupdate"
+    match: exact
+    direction: outbound
+    confidence: medium
+    hunt_log: true
+    hunt_host: false
+    purpose: "설치본이 GitHub 릴리스를 조회·다운로드할 때 붙이는 User-Agent. 포워드 프록시의 아웃바운드 로그용이다."
+    false_positives: "인가된 업데이트일 수 있다. GitHub 도메인 자체를 공격자 인프라로 보면 안 된다. 피해 웹사이트로 들어오는 WAF 지표가 아니다."
+    sources:
+      - kind: source
+        repo: https://github.com/Hinln/ARTEX
+        commit: f3e3f54b6c93916388a0a3dc6a439893a9abe37a
+        file: selfupdate/github.go
+        line: 129
+        note: "v0.3.14 커밋 86162d7 에서는 97행. 다운로드 GET 은 selfupdate/stage.go 227행(두 커밋 동일)."
+      - kind: report
+        title: "PLURA 1보 3절"
+        url: https://blog.plura.io/ko/respond/financial-sector-hacking-ioc-artex-1st-report/
+        date: "2026-10-03"
+
+  - id: host-console-title
+    status: active
+    type: file_content
+    value: "ARTEX — 自主渗透测试控制台"
+    match: contains
+    direction: host
+    confidence: high
+    hunt_log: false
+    hunt_host: true
+    purpose: "관리 콘솔 HTML 제목. 뜻은 'ARTEX — 자율 침투테스트 콘솔'이다. 의심 서버의 프론트 자원에서 확인한다."
+    false_positives: "이 저장소와 보안 문서는 같은 문자열을 인용한다. 실행 중인 콘솔의 HTML 에서 볼 때 설치 흔적으로 본다."
+    sources:
+      - kind: source
+        repo: https://github.com/Hinln/ARTEX
+        commit: f3e3f54b6c93916388a0a3dc6a439893a9abe37a
+        file: web/src/config/app-config.ts
+        line: 10
+        note: "v0.3.14 커밋 86162d7 에서도 10행."
+      - kind: report
+        title: "PLURA 1보 3절"
+        url: https://blog.plura.io/ko/respond/financial-sector-hacking-ioc-artex-1st-report/
+        date: "2026-10-03"
+
+  - id: host-console-description
+    status: active
+    type: file_content
+    value: "LLM 驱动的自主渗透测试系统控制台"
+    match: contains
+    direction: host
+    confidence: medium
+    hunt_log: false
+    hunt_host: true
+    purpose: "같은 콘솔 설정의 설명 문자열. 제목과 함께 볼 보조 식별자이다."
+    false_positives: "설명 문구를 인용한 문서에서도 맞는다. 제목이 없을 때는 설치 확정으로 쓰지 않는다."
+    sources:
+      - kind: source
+        repo: https://github.com/Hinln/ARTEX
+        commit: f3e3f54b6c93916388a0a3dc6a439893a9abe37a
+        file: web/src/config/app-config.ts
+        line: 11
+      - kind: report
+        title: "PLURA 1보 3절"
+        url: https://blog.plura.io/ko/respond/financial-sector-hacking-ioc-artex-1st-report/
+        date: "2026-10-03"
+
+  - id: host-artex-token-key
+    status: active
+    type: file_content
+    value: "artex_token"
+    match: contains
+    direction: host
+    confidence: medium
+    hunt_log: false
+    hunt_host: true
+    purpose: "콘솔 프론트가 인증 토큰을 localStorage 와 쿠키에 넣는 키. 브라우저 저장소 또는 콘솔 JS 에서 본다."
+    false_positives: "피해 사이트로 나가는 고정 쿠키가 아니다. WAF 쿠키 차단 규칙으로 옮기지 않는다. 분석 문서에도 문자열이 있다."
+    sources:
+      - kind: source
+        repo: https://github.com/Hinln/ARTEX
+        commit: f3e3f54b6c93916388a0a3dc6a439893a9abe37a
+        file: web/src/lib/auth.ts
+        line: 1
+        note: "서버는 server/auth.go 112행에서 같은 쿠키를 읽는다. v0.3.14 커밋 86162d7 에서는 auth.go 89행."
+      - kind: report
+        title: "PLURA 1보 3절"
+        url: https://blog.plura.io/ko/respond/financial-sector-hacking-ioc-artex-1st-report/
+        date: "2026-10-03"
+
+  - id: host-image-autumn27-artex
+    status: active
+    type: container_image
+    value: "autumn27/artex"
+    match: contains
+    direction: host
+    confidence: high
+    hunt_log: false
+    hunt_host: true
+    purpose: "공식 Docker Compose 이미지 이름. 컨테이너 목록과 compose 파일에서 비인가 설치를 볼 때 쓴다."
+    false_positives: "인가된 연구·점검 환경의 정상 설치일 수 있다. 이미지 존재만으로 금융권 사건 사용을 확정하지 않는다."
+    sources:
+      - kind: source
+        repo: https://github.com/Hinln/ARTEX
+        commit: f3e3f54b6c93916388a0a3dc6a439893a9abe37a
+        file: docker-compose.yml
+        line: 18
+        note: "v0.3.14 커밋 86162d7 에서도 18행."
+      - kind: report
+        title: "PLURA 1보 3절"
+        url: https://blog.plura.io/ko/respond/financial-sector-hacking-ioc-artex-1st-report/
+        date: "2026-10-03"
+
+  - id: host-binary-name
+    status: active
+    type: file_name
+    value: "artex"
+    also_values: ["artex.exe"]
+    match: file_name
+    direction: host
+    confidence: medium
+    hunt_log: false
+    hunt_host: true
+    purpose: "빌드 산출물과 프로세스 이름. go build -o artex ./cmd/artex 와 기본 실행 파일 이름이다."
+    false_positives: "이름이 같은 무관 파일·프로세스가 있을 수 있다. artex-hunt 처럼 하이픈이 붙으면 맞추지 않는다. 이미지 이름이나 콘솔 제목과 함께 본다."
+    sources:
+      - kind: source
+        repo: https://github.com/Hinln/ARTEX
+        commit: f3e3f54b6c93916388a0a3dc6a439893a9abe37a
+        file: cmd/artex/main.go
+        line: 55
+        note: "기본 수신 -addr :8787, 기록 프록시 -proxy 127.0.0.1:8788 은 55–57행. README 의 빌드 출력 이름도 artex 이다."
+
+  - id: host-path-harvest-static
+    status: active
+    type: file_path
+    value: "skills/api-recon/scripts/harvest_static.py"
+    match: path_suffix
+    direction: host
+    confidence: high
+    hunt_log: false
+    hunt_host: true
+    purpose: "정적 수집 스크립트가 설치 트리에 있는 경로."
+    false_positives: "소스 트리를 연구용으로 둔 경우에도 맞는다. 실행 여부는 프로세스·로그로 따로 본다."
+    sources:
+      - kind: source
+        repo: https://github.com/Hinln/ARTEX
+        commit: f3e3f54b6c93916388a0a3dc6a439893a9abe37a
+        file: skills/api-recon/scripts/harvest_static.py
+        line: 1
+
+  - id: host-path-spider
+    status: active
+    type: file_path
+    value: "skills/api-recon/scripts/spider_mpa.py"
+    match: path_suffix
+    direction: host
+    confidence: high
+    hunt_log: false
+    hunt_host: true
+    purpose: "MPA 순회 스크립트가 설치 트리에 있는 경로."
+    false_positives: "소스 트리를 연구용으로 둔 경우에도 맞는다."
+    sources:
+      - kind: source
+        repo: https://github.com/Hinln/ARTEX
+        commit: f3e3f54b6c93916388a0a3dc6a439893a9abe37a
+        file: skills/api-recon/scripts/spider_mpa.py
+        line: 1
+
+  - id: host-package-spa-api-recon-runtime
+    status: active
+    type: file_content
+    value: "spa-api-recon-runtime"
+    match: contains
+    direction: host
+    confidence: medium
+    hunt_log: false
+    hunt_host: true
+    purpose: "api-recon 런타임 스크립트 디렉터리의 package-lock 이름."
+    false_positives: "락 파일 이름을 인용한 글에서도 맞는다. 단독보다는 경로·콘솔 제목과 함께 본다."
+    sources:
+      - kind: source
+        repo: https://github.com/Hinln/ARTEX
+        commit: f3e3f54b6c93916388a0a3dc6a439893a9abe37a
+        file: skills/api-recon/scripts/package-lock.json
+        line: 2
+        note: "v0.3.14 커밋 86162d7 에서도 2행."
+
+  - id: host-env-pg-dsn
+    status: active
+    type: process_env
+    value: "ARTEX_PG_DSN"
+    match: token
+    direction: host
+    confidence: medium
+    hunt_log: false
+    hunt_host: true
+    purpose: "프로세스 환경의 Postgres 접속 문자열 변수. 값은 보고서에 남기지 않는다."
+    false_positives: "변수 이름만 언급한 스크립트에서도 맞을 수 있다. 값 유무와 실행 파일을 함께 본다."
+    sources:
+      - kind: source
+        repo: https://github.com/Hinln/ARTEX
+        commit: f3e3f54b6c93916388a0a3dc6a439893a9abe37a
+        file: docker-compose.yml
+        line: 23
+
+  - id: host-env-update-token
+    status: active
+    type: process_env
+    value: "ARTEX_UPDATE_GITHUB_TOKEN"
+    match: token
+    direction: host
+    confidence: medium
+    hunt_log: false
+    hunt_host: true
+    purpose: "릴리스 조회에 쓰는 토큰 환경 변수 이름. 토큰 값은 가린다."
+    false_positives: "이름만 적힌 운영 문서·서비스 파일에서도 맞는다."
+    sources:
+      - kind: source
+        repo: https://github.com/Hinln/ARTEX
+        commit: f3e3f54b6c93916388a0a3dc6a439893a9abe37a
+        file: selfupdate/github.go
+        line: 19
+        note: "상수 GitHubTokenEnv. v0.3.14 에서는 업데이트 저장소 상수가 Autumn-27/artex 였다(86162d7, selfupdate/github.go 15행)."
+
+  - id: ctx-listen-8787
+    status: contextual
+    type: listen_port
+    value: "8787/tcp"
+    match: context_only
+    direction: host
+    confidence: contextual
+    hunt_log: false
+    hunt_host: false
+    purpose: "기본 UI·API 수신 포트. 포트만으로 탐지하거나 차단하지 않는다."
+    false_positives: "다른 소프트웨어가 같은 포트를 쓸 수 있다. 공개 README 와 cmd/artex/main.go 55행의 기본값이다."
+    sources:
+      - kind: source
+        file: cmd/artex/main.go
+        line: 55
+        commit: f3e3f54b6c93916388a0a3dc6a439893a9abe37a
+      - kind: source
+        file: docker-compose.yml
+        line: 32
+        note: "v0.3.14 커밋에서는 31행. 8788 은 127.0.0.1 에만 매핑된다(HEAD 33행, v0.3.14 32행)."
+      - kind: report
+        title: "PLURA 1보 5절"
+        url: https://blog.plura.io/ko/respond/financial-sector-hacking-ioc-artex-1st-report/
+
+  - id: ctx-proxy-8788
+    status: contextual
+    type: listen_port
+    value: "8788/tcp"
+    match: context_only
+    direction: host
+    confidence: contextual
+    hunt_log: false
+    hunt_host: false
+    purpose: "기본 트래픽 기록 프록시. Compose 는 루프백에만 연다. 외부에서 8788 이 닫혀 있어도 ARTEX 가 아니라고 할 수 없다."
+    false_positives: "포트 단독 판정·차단에 쓰지 않는다."
+    sources:
+      - kind: source
+        file: cmd/artex/main.go
+        line: 57
+        commit: f3e3f54b6c93916388a0a3dc6a439893a9abe37a
+      - kind: source
+        file: docker-compose.yml
+        line: 33
+
+  - id: rejected-ua-worker-mock
+    status: rejected
+    type: http_user_agent
+    value: "ARTEX-worker/1.0"
+    match: exact
+    direction: inbound
+    confidence: rejected
+    hunt_log: false
+    hunt_host: false
+    purpose: "UI 목업 트래픽 예시의 User-Agent. 실제 워커의 고정 User-Agent 로 확인되지 않았다."
+    false_positives: "탐지 규칙에 넣지 않는다. 이 문자열이 보여도 이 키트는 ARTEX 워커로 올리지 않는다."
+    sources:
+      - kind: source
+        repo: https://github.com/Hinln/ARTEX
+        commit: f3e3f54b6c93916388a0a3dc6a439893a9abe37a
+        file: web/src/lib/mock/data.ts
+        line: 2912
+        note: "v0.3.14 커밋 86162d7 에서도 2912행. 워커 루프(server/engine.go 916행)에는 이 문자열이 없다."
+      - kind: report
+        title: "PLURA 1보 5절"
+        url: https://blog.plura.io/ko/respond/financial-sector-hacking-ioc-artex-1st-report/
+
+  - id: rejected-api-path-list
+    status: rejected
+    type: url_path
+    value: "/api/"
+    match: none
+    direction: inbound
+    confidence: rejected
+    hunt_log: false
+    hunt_host: false
+    purpose: "정적 수집·순회 스크립트가 HTML/JS 에서 API 후보를 가르는 정규식의 예시 접두사. 항상 요청하는 URL 이 아니다."
+    false_positives: "경로 일치만으로 ARTEX 나 악성 행위를 판단하지 않는다. 행위 휴리스틱은 건수·다양성만 보고, 경로 자체를 지표로 쓰지 않는다."
+    sources:
+      - kind: source
+        file: skills/api-recon/scripts/harvest_static.py
+        line: 87
+        commit: f3e3f54b6c93916388a0a3dc6a439893a9abe37a
+        note: "API_HINT. spider_mpa.py 24행은 접두사 집합이 조금 다르다."
+      - kind: report
+        title: "PLURA 1보 4절"
+        url: https://blog.plura.io/ko/respond/financial-sector-hacking-ioc-artex-1st-report/
+
+heuristics:
+  - id: js-asset-burst
+    confidence: low
+    title: "짧은 시간에 서로 다른 JS 자산을 다수 요청"
+    summary: "정적 수집 스크립트는 진입 HTML 이후 JS 를 20·24 워커로 병렬 수신한다. 이 항목은 그 형태를 느슨하게 본 것이며 ARTEX 확정이 아니다."
+    false_positives: "큰 SPA 의 정상 첫 로딩, 번들 배포, 모니터링이 같은 모양일 수 있다. 검증된 User-Agent 가 같이 있을 때만 중간 신뢰로 올린다."
+    thresholds:
+      window_seconds: 60
+      distinct_js: 20
+    sources:
+      - kind: source
+        file: skills/api-recon/scripts/harvest_static.py
+        line: 145
+        note: "추가 라운드 163·174행 max_workers=24, 151행 rounds < 6. 기본 임계 20 은 사건 관측값이 아니다."
+      - kind: report
+        title: "PLURA 1보 4절"
+        url: https://blog.plura.io/ko/respond/financial-sector-hacking-ioc-artex-1st-report/
+
+  - id: api-path-diversity
+    confidence: low
+    title: "짧은 시간에 API형 경로를 다수 요청"
+    summary: "한 출발지가 API 로 보이는 경로를 많이 바꾸며 호출하면 조사 대상으로 올린다. 경로 이름은 지표가 아니다."
+    false_positives: "정상 SPA·BFF·모바일 앱이 한 IP 뒤에서 많은 API 를 칠 수 있다. 인증·권한 맥락 없이 차단하지 않는다."
+    thresholds:
+      window_seconds: 60
+      distinct_api: 25
+    sources:
+      - kind: report
+        title: "PLURA 1보 4절. 반복 API 요청은 조사 조합으로 권고되고, 경로 목록은 IOC 가 아니라고 적혀 있다."
+        url: https://blog.plura.io/ko/respond/financial-sector-hacking-ioc-artex-1st-report/
+
+  - id: lookup-variation
+    confidence: low
+    title: "같은 조회 경로에서 파라미터 값을 반복 변경"
+    summary: "같은 경로에서 id·q·account 등 조회 값을 연속으로 바꾸는 패턴이다. LLM 에이전트 정찰에서 흔히 검토하는 행위이며 ARTEX 고유 시그니처가 아니다."
+    false_positives: "검색 자동완성, 페이지네이션, 배치 조회, 모니터링이 같은 모양이다. 서버측 인가가 막아야 할 문제이지 경로 차단 문제가 아니다."
+    thresholds:
+      window_seconds: 60
+      lookup_variants: 8
+    sources:
+      - kind: report
+        title: "PLURA 1보 4절. 파라미터·조회 대상의 반복 변경을 조사 조합으로 제시."
+        url: https://blog.plura.io/ko/respond/financial-sector-hacking-ioc-artex-1st-report/
+      - kind: report
+        title: "PLURA LLM 랩. User-Agent 없는 요청도 있으므로 행위는 UA 와 별도로 본다."
+        url: https://blog.plura.io/ko/column/howto-artex-llm/
+        date: "2026-10-09"
+
+  - id: html-crawl-pace
+    confidence: low
+    title: "HTML 페이지를 짧은 간격으로 연속 순회"
+    summary: "MPA 순회 스크립트의 기본 지연 0.1초를 가운데로 둔 간격 대역이다. 기본값의 참고이지 공격 속도 확정이 아니다."
+    false_positives: "정규 크롤러, 링크 검사기, 모니터링이 같은 간격일 수 있다. crawl_gap_min 과 crawl_gap_max 로 사이트에 맞게 조정한다."
+    thresholds:
+      window_seconds: 60
+      crawl_requests: 20
+      crawl_unique_paths: 15
+      crawl_gap_min: 0.05
+      crawl_gap_max: 0.40
+    sources:
+      - kind: source
+        file: skills/api-recon/scripts/spider_mpa.py
+        line: 71
+        note: "delay 기본 0.1, max 200, depth 4. PLURA 도 이 값을 고정 임계로 쓰지 말라고 했다."
+      - kind: report
+        title: "PLURA 1보 4절"
+        url: https://blog.plura.io/ko/respond/financial-sector-hacking-ioc-artex-1st-report/

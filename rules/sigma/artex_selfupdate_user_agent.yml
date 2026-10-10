@@ -1,0 +1,23 @@
+title: Outbound HTTP User-Agent artex-selfupdate
+id: 91c4a2e7-5d08-4b6a-8f33-0c7e1a9b4d22
+status: experimental
+description: >
+  User-Agent artex-selfupdate is set by the ARTEX release-check and download
+  client. Match it on forward-proxy logs. Do not treat GitHub as attacker
+  infrastructure, and do not deploy this rule on an inbound WAF.
+references:
+  - https://github.com/Hinln/ARTEX/blob/f3e3f54b6c93916388a0a3dc6a439893a9abe37a/selfupdate/github.go
+  - https://blog.plura.io/ko/respond/financial-sector-hacking-ioc-artex-1st-report/
+author: 최규선
+date: 2026-10-10
+logsource:
+  category: proxy
+detection:
+  selection:
+    c-useragent|re: '(?i)^artex-selfupdate$'
+  condition: selection
+falsepositives:
+  - An authorized operator updating a lab install
+level: low
+tags:
+  - detection.experimental
