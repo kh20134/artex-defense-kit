@@ -94,7 +94,7 @@ def render_html(report: HuntReport) -> str:
   body {{
     margin: 0; padding: 32px 20px 64px;
     font-family: "Noto Sans CJK KR", "Noto Sans KR", "Noto Sans CJK", "NanumGothic",
-      "Malgun Gothic", sans-serif;
+      "Malgun Gothic", "WenQuanYi Micro Hei", sans-serif;
     background: #f6f4ef; color: #1c1917; line-height: 1.55;
   }}
   main {{ max-width: 920px; margin: 0 auto; }}

@@ -74,6 +74,16 @@ artex-hunt host \
 
 `--fail-on high` 는 그 신뢰도 이상 항목이 있으면 종료 코드 2를 돌려 배치 점검에 붙일 수 있습니다. `--no-heuristics` 는 User-Agent 만 봅니다.
 
+아래 화면은 위 합성 표본을 실제로 돌린 결과입니다. 꾸며 만든 이미지가 아닙니다.
+
+![합성 접근 로그 스캔의 터미널 요약](docs/images/scan-terminal.png)
+
+![같은 스캔의 HTML 보고서](docs/images/scan-html-report.png)
+
+![합성 설치 디렉터리·프로세스·컨테이너 점검](docs/images/host-terminal.png)
+
+![호스트 점검 HTML 보고서. 토큰 값은 가려져 있다](docs/images/host-html-report.png)
+
 임계값 기본값과 출처는 `src/artex_hunt/data/indicators.yaml` 의 `heuristics` 입니다. `--window`, `--distinct-js`, `--distinct-api`, `--lookup-variants`, `--crawl-requests` 가 그 값을 덮어씁니다.
 
 ## 탐지 룰
